@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "/": {
+      "targetKind": "existing-ui",
+      "projectId": "435c1f04-90b5-4ab3-bc07-3132effb0998",
+      "baselineDraftId": "3496b0cf-26d7-4a46-a356-cd7cd64e3708",
+      "activeDraftId": "fa3237ed-4c2d-481a-9f87-abac1b160cf3",
+      "designSystemPath": ".superdesign/design-system.md",
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        "site/index.html",
+        "site/estilo.css",
+        "site/app.js:1:130",
+        "site/app.js:150:162",
+        "site/app.js:357:427",
+        ".superdesign/context/inicio-dados.json"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "23d47c5dff6a0da5e86297992c83faf85c02f3b3854068da9c87545b82182820",
+        "site/index.html": "8a5ea1f630bbf182cdd716038a695756a72b90ed891a7dfa7c399b3bc7c4e4cd",
+        "site/estilo.css": "be4049a9e68765bc06afc6ca0aacc9d3347becf39653e655806f34a5654771c5",
+        "site/app.js": "823b8b27908110b3101378ba6ea17e3056b8b3f1330259fe1ef7a9c9e04f9a63",
+        ".superdesign/context/inicio-dados.json": "a499ec2591a8741ab1b1f526085f3931d94b4a8b1598c1b1b161f3ddbee011b6"
+      },
+      "components": [],
+      "drafts": {
+        "3496b0cf-26d7-4a46-a356-cd7cd64e3708": {
+          "title": "Início atual (reprodução)",
+          "visualDirection": "gôndola e etiqueta amarela (atual)",
+          "currentVersion": 1
+        },
+        "fa3237ed-4c2d-481a-9f87-abac1b160cf3": {
+          "title": "Monitor de Preços - Electronic Shelf Labels",
+          "visualDirection": "etiqueta eletrônica e-paper",
+          "parentDraftId": "3496b0cf-26d7-4a46-a356-cd7cd64e3708",
+          "currentVersion": 1,
+          "selected": true,
+          "notes": "Escolhida. Refinamento no canvas bloqueado por falta de créditos; correções aplicadas direto no código (site/estilo.css, site/app.js)."
+        },
+        "d3229963-7568-4dd9-b901-5b7c43082708": {
+          "title": "Monitor de Preços - Thermal Receipt Theme",
+          "visualDirection": "cupom fiscal térmico",
+          "parentDraftId": "3496b0cf-26d7-4a46-a356-cd7cd64e3708",
+          "currentVersion": 1
+        }
+      },
+      "updatedAt": "2026-10-20T21:03:45.703Z"
+    }
+  }
+}

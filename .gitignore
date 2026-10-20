@@ -1,0 +1,5 @@
+config.json
+dados.json
+dados.json.tmp
+.superdesign/tmp/
+catalogo.db*

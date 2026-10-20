@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitor de Preços</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='6' width='30' height='20' rx='4' fill='%232a2c30'/%3E%3Crect x='5' y='10' width='22' height='12' rx='1.5' fill='%23f1f1ec'/%3E%3Ccircle cx='27' cy='8.5' r='1.6' fill='%23c4122f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="estilo.css?v=10">
+</head>
+<body>
+<div class="carga" id="carga" hidden></div>
+<header class="topo">
+  <div class="topo-in">
+    <a href="#/" class="marca"><span class="logo"><svg viewBox="0 0 32 32"><path d="M7 21l6-6 4 4 8-9" /></svg></span><span>Monitor de Preços</span></a>
+    <form class="busca" id="busca-topo" role="search">
+      <svg viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input name="q" placeholder="Buscar em todas as lojas: notebook, rtx 4060, iphone, ssd…" autocomplete="off">
+    </form>
+    <div class="topo-acoes">
+      <span class="status" id="status" hidden></span>
+      <button class="icone" id="tema" title="Tema claro/escuro" aria-label="Alternar tema"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
+    </div>
+  </div>
+  <nav class="abas" id="abas">
+    <a href="#/" data-v="inicio">Início</a>
+    <a href="#/catalogo" data-v="catalogo">Catálogo</a>
+    <a href="#/bugs" data-v="bugs">Bugs de preço <b class="cont" id="c-bugs"></b></a>
+    <a href="#/favoritos" data-v="favoritos">Favoritos <b class="cont" id="c-fav"></b></a>
+    <a href="#/alertas" data-v="alertas">Alertas</a>
+    <a href="#/lojas" data-v="lojas">Lojas</a>
+  </nav>
+</header>
+
+<main id="app"></main>
+
+<dialog id="modal" class="modal">
+  <button class="icone fechar" id="fechar" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div id="modal-corpo"></div>
+</dialog>
+
+<div class="toast" id="toast" hidden></div>
+<script src="app.js?v=9"></script>
+</body>
+</html>
