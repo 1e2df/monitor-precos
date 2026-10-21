@@ -1,6 +1,6 @@
 // Service worker do app: guarda a "casca" (HTML, CSS, JS, ícones) para abrir rápido e sem rede.
 // Os dados da API nunca vão para o cache: preço velho é pior que nenhum.
-const CACHE = 'monitor-casca-v1';
+const CACHE = 'monitor-casca-v2';
 const CASCA = ['./', 'index.html', 'app.js', 'estilo.css', 'manifest.webmanifest', 'icone-192.png', 'icone-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

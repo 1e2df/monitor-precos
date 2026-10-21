@@ -44,7 +44,8 @@ async function conectar(renovar = false) {
   if (!NO_PAGES) return (conexao = { base: '', chave }); // aberto direto pelo endereço do túnel
   let base = renovar ? null : ler('mp_base');
   if (!base) {
-    const g = await fetch(`https://api.github.com/gists/${gist}`, { cache: 'no-store' })
+    // o parâmetro fura o cache de 60 s da API do GitHub, senão vem o endereço antigo
+    const g = await fetch(`https://api.github.com/gists/${gist}?t=${Date.now()}`, { cache: 'no-store' })
       .then(r => (r.ok ? r.json() : Promise.reject(new SemPareamento('código de pareamento inválido'))));
     base = JSON.parse(Object.values(g.files)[0].content).url;
     gravar('mp_base', base);
@@ -61,12 +62,14 @@ async function api(url, opcoes = {}, tentativa = 0) {
   } catch {
     // o túnel muda de endereço quando o PC reinicia o monitor: busca o endereço novo uma vez
     if (NO_PAGES && tentativa === 0) { await conectar(true); return api(url, opcoes, 1); }
+    gravar('mp_base', null); conexao = null; // na próxima tentativa, busca o endereço de novo
     throw new ServidorFora('não foi possível falar com o monitor');
   }
   if (r.status === 401) { gravar('mp_codigo', null); conexao = null; throw new SemPareamento('a chave de acesso mudou; pareie o celular de novo'); }
   if (r.status === 530 || r.status === 502 || r.status === 404 && conexao.base && !r.headers.get('content-type')?.includes('json')) {
     // endereço de túnel antigo, já fechado
     if (NO_PAGES && tentativa === 0) { await conectar(true); return api(url, opcoes, 1); }
+    gravar('mp_base', null); conexao = null;
     throw new ServidorFora('o monitor está desligado no PC');
   }
   const j = await r.json().catch(() => ({}));
@@ -92,10 +95,13 @@ function telaConexao(erro) {
   }
   const fora = erro instanceof ServidorFora;
   app.innerHTML = `<div class="painel vazio"><b>${fora ? 'O monitor está desligado no PC' : 'Algo deu errado'}</b>
-    ${fora ? 'Ligue o monitor no PC (iniciar.bat) e tente de novo. O celular encontra o endereço novo sozinho.' : esc(erro.message)}
+    ${fora ? 'Ligue o monitor no PC (iniciar.bat). O app tenta de novo a cada 15 segundos e encontra o endereço novo sozinho.' : esc(erro.message)}
     <p><button class="btn pri" id="tentar">Tentar de novo</button></p></div>`;
-  $('#tentar').onclick = () => { conexao = null; rota(); };
+  $('#tentar').onclick = () => { clearTimeout(novaTentativa); conexao = null; rota(); };
+  // o túnel novo leva alguns segundos para responder depois que o PC liga o monitor: tenta sozinho
+  if (fora) { clearTimeout(novaTentativa); novaTentativa = setTimeout(() => { if (document.querySelector('#tentar')) { conexao = null; rota(); } }, 15000); }
 }
+let novaTentativa;
 
 let toastT;
 function toast(msg) {
