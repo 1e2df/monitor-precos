@@ -362,3 +362,17 @@ main { max-width: 1280px; margin: 0 auto; padding: 30px 24px 80px; }
 /* etiquetas da mesma fileira com a mesma altura */
 .card .esl { flex: 1; display: flex; flex-direction: column; }
 .card .esl > .tela { flex: 1; }
+
+/* ---------- app no celular ---------- */
+/* tela cheia no celular: respeita o entalhe e a barra de gestos */
+.topo { padding-top: env(safe-area-inset-top); }
+main { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+.pareio > .tela { grid-template-columns: 1fr; max-width: 640px; animation: none; }
+.det-celular .foto { min-height: 0; padding: 22px; }
+.qr { width: 260px; height: 260px; display: grid; place-items: center; }
+.qr img, .qr canvas { width: 260px; height: 260px; image-rendering: pixelated; }
+.passos { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 60ch; }
+.codigo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #fff; border: 1px solid var(--linha); border-radius: 5px; padding: 10px 12px; }
+.codigo span { font-size: 13px; color: var(--grafite); width: 100%; }
+.codigo code { flex: 1; min-width: 0; overflow-wrap: anywhere; font: 500 13px/1.4 ui-monospace, Consolas, monospace; }
+@media (max-width: 640px) { .qr, .qr img, .qr canvas { width: 220px; height: 220px; } }

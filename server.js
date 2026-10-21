@@ -9,12 +9,15 @@ const { extrair } = require('./extrair');
 const banco = require('./db');
 const { notificar, enviarTexto } = require('./notificar');
 const { ehTecnologia, TERMOS } = require('./tecnologia');
+const celular = require('./celular');
 
 const ARQ_CONFIG = path.join(__dirname, 'config.json');
 
 // ---------- config ----------
 const PADRAO = {
   porta: 3100,
+  // app no celular: túnel Cloudflare + endereço publicado num gist secreto (TUNNEL=0 desliga)
+  celular: { ativo: true, app: 'https://1e2df.github.io/monitor-precos/site/' },
   apenasTecnologia: true,  // só produtos de tecnologia (lojas mistas são lidas por termos como "notebook", "smart tv"...)
   intervaloMin: 60,        // cada loja é relida a cada X minutos
   paginasPorLoja: 6,       // páginas de 50 produtos ordenadas por desconto (VTEX)
@@ -290,7 +293,7 @@ async function talvezEnviarResumo() {
 }
 
 // ---------- servidor ----------
-const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
+const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 const SITE = path.join(__dirname, 'site');
 
 function corpo(req) {
@@ -406,10 +409,41 @@ async function api(req, res, u) {
   json(res, 404, { erro: 'não encontrado' });
 }
 
+// ---------- acesso pelo celular ----------
+const CHAVE = celular.garantirChave(ARQ_CONFIG);
+const ORIGEM_APP = new URL(cfg.celular.app).origin;
+status.celular = { tunel: null, link: null, erro: null };
+// pedidos que chegam pelo túnel trazem o cabeçalho cf-connecting-ip; os do próprio PC, não
+const peloTunel = req => !!req.headers['cf-connecting-ip'];
+const autorizado = req => !peloTunel(req) || celular.chaveConfere(String(req.headers.authorization || '').replace(/^Bearer\s+/i, ''), CHAVE);
+function dadosPareamento() {
+  const gist = celular.lerConfig(ARQ_CONFIG).celular?.gist;
+  const codigo = gist ? `${gist}.${CHAVE}` : null;
+  return { ativo: !!cfg.celular.ativo, app: cfg.celular.app, tunel: status.celular.tunel, codigo, link: codigo ? `${cfg.celular.app}#parear=${codigo}` : null, erro: status.celular.erro };
+}
+
 const servidor = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
+  // o app do GitHub Pages chama a API de outro endereço
+  const origem = req.headers.origin;
+  if (origem && (origem === ORIGEM_APP || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origem))) {
+    res.setHeader('Access-Control-Allow-Origin', origem);
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Max-Age', '600');
+    res.setHeader('Vary', 'Origin');
+  }
+  if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
   try {
-    if (u.pathname.startsWith('/api/')) return await api(req, res, u);
+    if (u.pathname.startsWith('/api/')) {
+      if (!autorizado(req)) return json(res, 401, { erro: 'chave de acesso inválida: pareie o celular de novo' });
+      if (u.pathname === '/api/celular') {
+        // o código de pareamento só aparece no próprio PC
+        if (peloTunel(req)) return json(res, 403, { erro: 'disponível só no PC' });
+        return json(res, 200, dadosPareamento());
+      }
+      return await api(req, res, u);
+    }
     const arq = path.join(SITE, path.normalize(u.pathname === '/' ? 'index.html' : u.pathname).replace(/^(\.\.[/\\])+/, ''));
     if (!arq.startsWith(SITE) || !fs.existsSync(arq) || fs.statSync(arq).isDirectory()) { res.writeHead(404); return res.end('não encontrado'); }
     res.writeHead(200, { 'Content-Type': TIPOS[path.extname(arq)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
@@ -432,6 +466,18 @@ const [cmd, ...args] = process.argv.slice(2);
     console.log(`\nMonitor de Preços em http://localhost:${porta}`);
     console.log(`${banco.lojas.todas().length} lojas, relidas a cada ${cfg.intervaloMin} min. Ctrl+C para sair.`);
     if (process.env.OPEN !== '0' && process.platform === 'win32') require('child_process').spawn('cmd', ['/c', 'start', '', `http://localhost:${porta}`], { stdio: 'ignore', detached: true }).unref();
+    if (cfg.celular.ativo && process.env.TUNNEL !== '0') {
+      celular.abrirTunel(porta, url => {
+        status.celular.tunel = url;
+        status.celular.erro = null;
+        celular.publicarEndereco(ARQ_CONFIG, url).then(() => {
+          const d = dadosPareamento();
+          status.celular.link = d.link;
+          console.log(`\nCelular: abra o monitor no site e toque em "Celular" para parear (link também em ${path.join(__dirname, 'link-celular.txt')}).`);
+          fs.writeFileSync(path.join(__dirname, 'link-celular.txt'), d.link + '\n');
+        }).catch(e => { status.celular.erro = e.message; console.log('  celular:', e.message); });
+      }, e => { status.celular.erro = e.message; console.log('  celular:', e.message); });
+    }
   });
   rodada(false);
   setInterval(() => rodada(false), 60e3);

@@ -21,11 +21,80 @@ const quando = t => {
   return new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 };
 
-async function api(url, opcoes = {}) {
-  const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opcoes, body: opcoes.body && JSON.stringify(opcoes.body) });
+// ---------- conexão ----------
+// No PC o site fala com o próprio servidor. No celular o app vem do GitHub Pages (endereço fixo)
+// e descobre o endereço atual do túnel num gist; o código de pareamento traz o gist e a chave.
+const NO_PC = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+const NO_PAGES = location.hostname.endsWith('github.io');
+const ler = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const gravar = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
+{ // link de pareamento: ...#parear=<gist>.<chave>
+  const m = location.hash.match(/parear=([\w-]+\.[\w-]+)/);
+  if (m) { gravar('mp_codigo', m[1]); gravar('mp_base', null); history.replaceState(null, '', location.pathname); }
+}
+class SemPareamento extends Error {}
+class ServidorFora extends Error {}
+let conexao = null; // { base, chave }
+
+async function conectar(renovar = false) {
+  if (NO_PC) return (conexao = { base: '', chave: null });
+  const codigo = ler('mp_codigo');
+  if (!codigo) throw new SemPareamento('celular ainda não pareado');
+  const [gist, chave] = codigo.split('.');
+  if (!NO_PAGES) return (conexao = { base: '', chave }); // aberto direto pelo endereço do túnel
+  let base = renovar ? null : ler('mp_base');
+  if (!base) {
+    const g = await fetch(`https://api.github.com/gists/${gist}`, { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : Promise.reject(new SemPareamento('código de pareamento inválido'))));
+    base = JSON.parse(Object.values(g.files)[0].content).url;
+    gravar('mp_base', base);
+  }
+  return (conexao = { base, chave });
+}
+
+async function api(url, opcoes = {}, tentativa = 0) {
+  if (!conexao) await conectar();
+  const headers = { 'Content-Type': 'application/json', ...(conexao.chave ? { Authorization: `Bearer ${conexao.chave}` } : {}) };
+  let r;
+  try {
+    r = await fetch(conexao.base + url, { ...opcoes, headers, body: opcoes.body && JSON.stringify(opcoes.body) });
+  } catch {
+    // o túnel muda de endereço quando o PC reinicia o monitor: busca o endereço novo uma vez
+    if (NO_PAGES && tentativa === 0) { await conectar(true); return api(url, opcoes, 1); }
+    throw new ServidorFora('não foi possível falar com o monitor');
+  }
+  if (r.status === 401) { gravar('mp_codigo', null); conexao = null; throw new SemPareamento('a chave de acesso mudou; pareie o celular de novo'); }
+  if (r.status === 530 || r.status === 502 || r.status === 404 && conexao.base && !r.headers.get('content-type')?.includes('json')) {
+    // endereço de túnel antigo, já fechado
+    if (NO_PAGES && tentativa === 0) { await conectar(true); return api(url, opcoes, 1); }
+    throw new ServidorFora('o monitor está desligado no PC');
+  }
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.erro || `erro ${r.status}`);
   return j;
+}
+
+// telas de quando o celular não consegue falar com o monitor
+function telaConexao(erro) {
+  if (erro instanceof SemPareamento) {
+    app.innerHTML = `<section class="esl vitrine pareio"><div class="tela">
+      <div><h1>Parear este celular</h1>
+        <p class="porque">No PC, abra o monitor e toque no ícone de celular no topo. Aponte a câmera para o QR code, ou copie o código e cole aqui.</p>
+        ${erro.message !== 'celular ainda não pareado' ? `<p class="mut peq-txt">Motivo: ${esc(erro.message)}.</p>` : ''}
+        <form class="seguir-form" id="parear"><input class="campo" name="codigo" placeholder="Código de pareamento" autocomplete="off" required><button class="btn pri">Conectar</button></form>
+      </div></div></section>`;
+    $('#parear').onsubmit = e => {
+      e.preventDefault();
+      gravar('mp_codigo', e.target.codigo.value.trim().replace(/^.*parear=/, '')); gravar('mp_base', null); conexao = null;
+      rota(); atualizarContadores();
+    };
+    return;
+  }
+  const fora = erro instanceof ServidorFora;
+  app.innerHTML = `<div class="painel vazio"><b>${fora ? 'O monitor está desligado no PC' : 'Algo deu errado'}</b>
+    ${fora ? 'Ligue o monitor no PC (iniciar.bat) e tente de novo. O celular encontra o endereço novo sozinho.' : esc(erro.message)}
+    <p><button class="btn pri" id="tentar">Tentar de novo</button></p></div>`;
+  $('#tentar').onclick = () => { conexao = null; rota(); };
 }
 
 let toastT;
@@ -327,7 +396,7 @@ function rota() {
   const params = new URLSearchParams(qs || '');
   document.querySelectorAll('#abas a').forEach(a => a.classList.toggle('on', a.dataset.v === (nome || 'inicio')));
   if (modal.open) modal.close();
-  (ROTAS[nome] || inicio)(params);
+  Promise.resolve((ROTAS[nome] || inicio)(params)).catch(telaConexao);
   window.scrollTo(0, 0);
 }
 addEventListener('hashchange', rota);
@@ -652,6 +721,42 @@ async function atualizarContadores() {
     st.textContent = r.status.buscandoAoVivo ? `pesquisando “${r.status.buscandoAoVivo}”…` : 'lendo lojas…';
   } catch {}
 }
-setInterval(atualizarContadores, 10000);
+setInterval(atualizarContadores, NO_PC ? 10000 : 30000);
 atualizarContadores();
 rota();
+
+// ---------- usar no celular (só no PC): QR code e código de pareamento ----------
+if (NO_PC) {
+  const botao = $('#celular');
+  botao.hidden = false;
+  botao.onclick = async () => {
+    const corpo = $('#modal-corpo');
+    corpo.innerHTML = '<div class="carregando" style="padding:40px">Preparando…</div>';
+    if (!modal.open) modal.showModal();
+    const d = await api('/api/celular').catch(e => ({ erro: e.message }));
+    const passos = `<ol class="passos">
+        <li>Aponte a câmera do celular para o QR code e abra o link.</li>
+        <li>No Android, toque em <b>Instalar app</b> (ou no menu ⋮, <b>Adicionar à tela inicial</b>). No iPhone, abra no Safari e toque em Compartilhar, <b>Adicionar à Tela de Início</b>.</li>
+        <li>Se o app instalado pedir o código, cole o código abaixo uma vez.</li>
+      </ol>`;
+    corpo.innerHTML = `<div class="prod det-celular"><div class="foto"><div id="qr" class="qr"></div></div><div class="det">
+      <h2>Usar no celular</h2>
+      ${d.link ? `${passos}
+        <div class="codigo"><span>Código de pareamento</span><code>${esc(d.codigo)}</code><button class="btn peq" id="copiar-cod">Copiar</button></div>
+        <p class="mut peq-txt">O celular fala com este PC por um túnel seguro da Cloudflare, protegido por essa chave. Deixe o monitor ligado aqui; se ele reiniciar, o app encontra o endereço novo sozinho. Não compartilhe o código: quem tiver ele vê e muda o seu monitor.</p>`
+      : `<p class="porque">${d.ativo === false ? 'O acesso pelo celular está desligado em config.json (celular.ativo).' : d.erro ? `Ainda não deu para abrir o acesso: ${esc(d.erro)}.` : 'Abrindo o túnel… isso leva uns segundos depois que o monitor liga.'}</p>
+        <p><button class="btn" id="de-novo">Verificar de novo</button></p>`}
+    </div></div>`;
+    $('#de-novo')?.addEventListener('click', () => botao.click());
+    $('#copiar-cod')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(d.codigo); toast('Código copiado'); } catch { toast(d.codigo); } });
+    if (d.link) {
+      // gerador de QR code carregado só quando precisa
+      if (!window.QRCode) await new Promise((ok, falha) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'; s.onload = ok; s.onerror = falha; document.head.appendChild(s); }).catch(() => {});
+      if (window.QRCode) new QRCode($('#qr'), { text: d.link, width: 260, height: 260, colorDark: '#18191b', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+      else $('#qr').innerHTML = `<p class="mut peq-txt" style="padding:20px">Sem internet para gerar o QR code. Abra no celular: <a href="${esc(d.link)}">${esc(d.link)}</a></p>`;
+    }
+  };
+}
+
+// app instalável: o service worker guarda a casca do site para abrir rápido
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || NO_PC)) navigator.serviceWorker.register('sw.js').catch(() => {});

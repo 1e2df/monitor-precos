@@ -2,13 +2,21 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Monitor de Preços</title>
+<meta name="theme-color" content="#2a2c30">
+<meta name="description" content="Preços de tecnologia de várias lojas, com bugs de preço e quedas reais.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Monitor">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='6' width='30' height='20' rx='4' fill='%232a2c30'/%3E%3Crect x='5' y='10' width='22' height='12' rx='1.5' fill='%23f1f1ec'/%3E%3Ccircle cx='27' cy='8.5' r='1.6' fill='%23c4122f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="estilo.css?v=10">
+<link rel="stylesheet" href="estilo.css?v=11">
 </head>
 <body>
 <div class="carga" id="carga" hidden></div>
@@ -21,6 +29,7 @@
     </form>
     <div class="topo-acoes">
       <span class="status" id="status" hidden></span>
+      <button class="icone" id="celular" title="Usar no celular" aria-label="Usar no celular" hidden><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></button>
       <button class="icone" id="tema" title="Tema claro/escuro" aria-label="Alternar tema"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
     </div>
   </div>
@@ -42,6 +51,6 @@
 </dialog>
 
 <div class="toast" id="toast" hidden></div>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
