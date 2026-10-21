@@ -80,6 +80,24 @@ Todo dia às 8h sai um resumo das últimas 24h: bugs ativos, favoritos que baixa
 cada busca seguida, produtos bem mais baratos que nas outras lojas e as maiores quedas. Ele aparece no
 topo da aba Alertas, com um botão para enviar na hora. Hora e liga/desliga em `config.json` (`resumoDiario`).
 
+## No celular (app)
+
+O monitor vira um app no celular, com o mesmo visual e as mesmas funções. Ele continua rodando no PC:
+o celular fala com ele por um túnel seguro da Cloudflare (gratuito, sem conta).
+
+1. Ligue o monitor no PC (`iniciar.bat`) e espere alguns segundos.
+2. No site do PC, toque no ícone de celular no topo: aparece um QR code.
+3. Aponte a câmera do celular para o QR code e abra o link.
+4. Instale: no Android, **Instalar app** (ou menu ⋮, **Adicionar à tela inicial**); no iPhone, no Safari,
+   Compartilhar, **Adicionar à Tela de Início**. Se o app instalado pedir, cole o código de pareamento.
+
+O app fica em `https://1e2df.github.io/monitor-precos/site/` e acha o PC sozinho, mesmo quando o
+endereço do túnel muda: a cada início o PC publica o endereço atual num gist secreto da sua conta
+do GitHub (precisa do `gh` logado). Pedidos que chegam pela internet exigem a chave de acesso,
+guardada em `config.json` (`celular.chave`); apagar essa chave e reiniciar desfaz o pareamento de
+todos os celulares. Requisitos: `winget install Cloudflare.cloudflared` e `winget install GitHub.cli`.
+Para desligar: `"celular": { "ativo": false }` em `config.json` ou a variável `TUNNEL=0`.
+
 ## Notificações
 
 Saem notificações para bugs confirmados e para qualquer mudança em favoritos e buscas seguidas.
